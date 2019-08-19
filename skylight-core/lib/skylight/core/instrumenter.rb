@@ -297,7 +297,15 @@ module Skylight::Core
     end
 
     def ignore?(trace)
-      config.ignored_endpoints.include?(trace.endpoint)
+      # are we explicitly ignoring this endpoint?
+      return true if config.ignored_endpoints.include?(trace.endpoint)
+
+      # if we have a specific list of endpoints we're allowing, ignore unless this is one of them
+      if config.only_endpoints.length > 0
+        return true unless config.only_endpoints.include?(trace.endpoint)
+      else
+        false
+      end
     end
 
     # Return [title, sql]

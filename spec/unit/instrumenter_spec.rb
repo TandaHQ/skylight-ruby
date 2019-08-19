@@ -422,6 +422,51 @@ describe "Skylight::Instrumenter", :http, :agent do
         expect(server.reports[0].endpoints.map(&:name)).to eq(["foo#bar"])
       end
 
+      it "runs only on particular endpoints" do
+        config[:only_endpoints] = ["bar#slow_endpoint", "baz#speedmeup"]
+
+        Skylight.trace "bar#slow_endpoint", "app.rack" do
+          clock.skip 1
+        end
+
+        Skylight.trace "baz#speedmeup", "app.rack" do
+          clock.skip 1
+        end
+
+        Skylight.trace "bar#fast_endpoint", "app.rack" do
+          clock.skip 1
+        end
+
+        clock.unfreeze
+        server.wait resource: "/report"
+
+        expect(server.reports[0]).to have(2).endpoints
+        expect(server.reports[0].endpoints.map(&:name)).to eq(["bar#slow_endpoint", "baz#speedmeup"])
+      end
+
+      it "can handle only and ignore used together" do
+        config[:only_endpoints] = ["bar#slow_endpoint", "baz#speedmeup"]
+        config[:ignored_endpoints] = ["bar#slow_endpoint", "baz#heartbeat"]
+
+        Skylight.trace "bar#slow_endpoint", "app.rack" do
+          clock.skip 1
+        end
+
+        Skylight.trace "baz#speedmeup", "app.rack" do
+          clock.skip 1
+        end
+
+        Skylight.trace "bar#fast_endpoint", "app.rack" do
+          clock.skip 1
+        end
+
+        clock.unfreeze
+        server.wait resource: "/report"
+
+        expect(server.reports[0]).to have(1).endpoints
+        expect(server.reports[0].endpoints.map(&:name)).to eq(["baz#speedmeup"])
+      end
+
       describe "#mute" do
         def spans
           server.reports[0].endpoints[0].traces[0].spans

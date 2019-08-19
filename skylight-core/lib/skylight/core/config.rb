@@ -374,6 +374,21 @@ module Skylight::Core
         end
     end
 
+    def only_endpoints
+      @only_endpoints ||=
+        begin
+          only_endpoints = get(:only_endpoints)
+
+          # If, for some odd reason you have a comma in your endpoint name, use the
+          # YML config instead.
+          if only_endpoints.is_a?(String)
+            only_endpoints = only_endpoints.split(/\s*,\s*/)
+          end
+
+          Array(only_endpoints)
+        end
+    end
+
     def root
       self[:root] || Dir.pwd
     end
